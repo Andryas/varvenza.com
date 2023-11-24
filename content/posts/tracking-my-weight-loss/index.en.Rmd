@@ -1,0 +1,11 @@
+---
+title: Tracking My Weight Loss
+author: Andryas Wavrzenczak
+date: '2023-07-30'
+slug: "tracking-my-weight-loss"
+draft: true
+series_order: 13
+tags: ["apple", "experiment", "analysis"]
+---
+
+# Teste
