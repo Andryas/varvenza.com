@@ -53,3 +53,5 @@ rsconnect/
 *.Rproj
 *.Renviron*
 .hugo_build.lock
+public/
+resources/
