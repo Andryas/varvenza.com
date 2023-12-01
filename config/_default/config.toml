@@ -3,7 +3,7 @@
 # https://blowfish.page/docs/getting-started/
 
 # baseURL = "https://storage.googleapis.com."
-baseURL = "www.varvenza.com"
+baseURL = "https://varvenza.com"
 # baseURL = "https://andryas.github.io/"
 theme = "blowfish"
 defaultContentLanguage = "en"
