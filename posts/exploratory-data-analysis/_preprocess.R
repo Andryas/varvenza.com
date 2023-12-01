@@ -1,17 +1,7 @@
 library(tidyverse)
 
-options(dplyr.width = Inf)
 
-m <- mongolite::mongo(
-  collection = "centris_ca",
-  db = Sys.getenv("MONGO_DATABASE"),
-  url = Sys.getenv("MONGO_URI")
-)
-data <- m$find()
-m$disconnect()
-data <- as_tibble(data)
-
-glimpse(data)
+# read from gcs
 
 data |>
   group_by(category) |>
