@@ -20,10 +20,6 @@ If you are reading this, you already know the power and beauty of Shiny, so I wo
 
 # The problem
 
-Last week I had a task job to async a part of the code because it was freezing the entire application. For those that
-don’t know, the Shiny works in a sync way, which means it executes code in sequence, so if you click on one button and
-it has a long operation, the entire application will wait until the operation ends.  
-
 To exemplify, I create a simple app with two extensive operations. The data you will find here consists of the distance
 between pairs of each city in the State of Parana in Brazil, some geographics coordinations and sf things to create
 maps. And we will be using the idea of Travel Salesman to illustrate. We will calculate all the possible routes between
@@ -45,7 +41,7 @@ more freezing problems.
 
 ![](https://raw.githubusercontent.com/Andryas/shiny-async/master/example.gif)
 
-Before the comment, if you want to go straight to the code...
+Before the comment, if you want to go straight to the app...
 
 ```
 shiny::runGitHub("Andryas/shiny-async")
@@ -177,14 +173,12 @@ output$cities_distance <- renderDT({
 # ...
 ```
 
-
 Thank you for reading and hasta la vista muchachos.  
 
 ***
 
-To know more about async things in Shiny Async programming in R and
+To know more about async things in Shiny check out
 
-[Long Runni...
-ng Tasks With Shiny: Challenges and Solutions](https://www.r-bloggers.com/2018/07/long-running-tasks-with-shiny-challenges-and-solutions/)
+[Long Running Tasks With Shiny: Challenges and Solutions](https://www.r-bloggers.com/2018/07/long-running-tasks-with-shiny-challenges-and-solutions/)
 
 [Async programming in R and Shiny](https://medium.com/@joe.cheng/async-programming-in-r-and-shiny-ebe8c5010790)
