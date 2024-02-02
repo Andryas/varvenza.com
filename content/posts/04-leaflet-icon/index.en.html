@@ -1,0 +1,709 @@
+---
+title: Enhancing Map Visualizations in Leaflet with Custom Markers and Colors in R
+author: Andryas Wavrzenczak
+date: '2024-01-31'
+slug: "enhancing-map-visualizations-in-leaflet-with-custom-markers-and-colors-in-r"
+draft: false
+series_order: 13
+tags: ['leaflet', 'icons', 'maps']
+output:
+  html_document:
+    self_contained: true
+---
+
+<script src="{{< blogdown/postref >}}index.en_files/htmlwidgets/htmlwidgets.js"></script>
+<script src="{{< blogdown/postref >}}index.en_files/jquery/jquery-3.6.0.min.js"></script>
+<link href="{{< blogdown/postref >}}index.en_files/leaflet/leaflet.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.en_files/leaflet/leaflet.js"></script>
+<link href="{{< blogdown/postref >}}index.en_files/leafletfix/leafletfix.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.en_files/proj4/proj4.min.js"></script>
+<script src="{{< blogdown/postref >}}index.en_files/Proj4Leaflet/proj4leaflet.js"></script>
+<link href="{{< blogdown/postref >}}index.en_files/rstudio_leaflet/rstudio_leaflet.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.en_files/leaflet-binding/leaflet.js"></script>
+<script src="{{< blogdown/postref >}}index.en_files/leaflet-providers/leaflet-providers_2.0.0.js"></script>
+<script src="{{< blogdown/postref >}}index.en_files/leaflet-providers-plugin/leaflet-providers-plugin.js"></script>
+<link href="{{< blogdown/postref >}}index.en_files/leaflet-awesomemarkers/leaflet.awesome-markers.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.en_files/leaflet-awesomemarkers/leaflet.awesome-markers.min.js"></script>
+<link href="{{< blogdown/postref >}}index.en_files/fontawesome/font-awesome.min.css" rel="stylesheet" />
+
+
+<p>Leaflet is one of the best open-source JavaScript libraries for map visualizations, and its integration with R is excellent; however, only one minor detail bordering me, the limitation of 19 colours for the markers, besides the exhaustive way to map each value to each icon and colour.</p>
+<p><img src="https://storage.googleapis.com/varvenza/04-leaflet-icon/Screenshot%202024-02-01%20at%2010.16.19%E2%80%AFAM.png" /></p>
+<p>Not everything can be expressed in light red, red and dark red; sometimes, you
+need something in between.</p>
+<p>To solve this little problem, I created a new function called <code>addCustomMakers,</code> which provides a different way to create markers on maps and gives more flexibility for the icons and colours.</p>
+<p>Using my <code>addCustomMakers,</code> you need to add to your data.frame if you wish 7 columns, besides the must-have <strong>lat</strong> and <strong>lon</strong>, which are</p>
+<ul>
+<li><code>iconHeight</code> and <code>iconWidth</code>,</li>
+<li><code>icon</code> from <a href="https://icons.getbootstrap.com/">Bootstrap Icon</a> or <a href="https://github.com/FortAwesome/Font-Awesome/tree/master/svgs">FontAwesome</a></li>
+<li><code>group</code> the grouping variable, in the following examples would be the property_type, house, duplex, condo etc…</li>
+<li><code>fill</code> a color which could be a hex</li>
+<li><code>source</code> fontawesome or bootstrap libraries</li>
+<li><code>solid</code> if source font awesome, solid TRUE or FALSE; if FALSE, then it uses the regular version; otherwise, the solid version.</li>
+</ul>
+<p>The key points are:</p>
+<ul>
+<li>you can switch between libraries, i.e., fontawesome or bootstrap icon, per row</li>
+<li>you have your icons on the map instead of markers with the icons inside</li>
+<li>you have the flexibility to choose any colour you want, which brings us to use palettes already made, like the Wes Anderson.</li>
+</ul>
+<p>Let me show you. First let’s start the way available in the leaflet package
+using the dataset from my package (centris_ca).</p>
+<pre class="r"><code>library(aw)</code></pre>
+<p>The first 6 rows of the dataset.</p>
+<pre class="r"><code>head(centris_ca) |&gt;
+    gt::gt()</code></pre>
+<div id="bvmadgnllg" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#bvmadgnllg table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#bvmadgnllg thead, #bvmadgnllg tbody, #bvmadgnllg tfoot, #bvmadgnllg tr, #bvmadgnllg td, #bvmadgnllg th {
+  border-style: none;
+}
+
+#bvmadgnllg p {
+  margin: 0;
+  padding: 0;
+}
+
+#bvmadgnllg .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#bvmadgnllg .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#bvmadgnllg .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#bvmadgnllg .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#bvmadgnllg .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#bvmadgnllg .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#bvmadgnllg .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#bvmadgnllg .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#bvmadgnllg .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#bvmadgnllg .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#bvmadgnllg .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#bvmadgnllg .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#bvmadgnllg .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#bvmadgnllg .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#bvmadgnllg .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#bvmadgnllg .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#bvmadgnllg .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#bvmadgnllg .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#bvmadgnllg .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#bvmadgnllg .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#bvmadgnllg .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#bvmadgnllg .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#bvmadgnllg .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#bvmadgnllg .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#bvmadgnllg .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#bvmadgnllg .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#bvmadgnllg .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#bvmadgnllg .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#bvmadgnllg .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#bvmadgnllg .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#bvmadgnllg .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#bvmadgnllg .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#bvmadgnllg .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#bvmadgnllg .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#bvmadgnllg .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#bvmadgnllg .gt_left {
+  text-align: left;
+}
+
+#bvmadgnllg .gt_center {
+  text-align: center;
+}
+
+#bvmadgnllg .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#bvmadgnllg .gt_font_normal {
+  font-weight: normal;
+}
+
+#bvmadgnllg .gt_font_bold {
+  font-weight: bold;
+}
+
+#bvmadgnllg .gt_font_italic {
+  font-style: italic;
+}
+
+#bvmadgnllg .gt_super {
+  font-size: 65%;
+}
+
+#bvmadgnllg .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#bvmadgnllg .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#bvmadgnllg .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#bvmadgnllg .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#bvmadgnllg .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#bvmadgnllg .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#bvmadgnllg .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+<table class="gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+  <thead>
+    
+    <tr class="gt_col_headings">
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="title">title</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="price">price</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="lat">lat</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="lon">lon</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="business_type">business_type</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="property_type">property_type</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td headers="title" class="gt_row gt_left">Condo for sale</td>
+<td headers="price" class="gt_row gt_right">332978</td>
+<td headers="lat" class="gt_row gt_right">45.49459400</td>
+<td headers="lon" class="gt_row gt_right">-73.57475600</td>
+<td headers="business_type" class="gt_row gt_left">sale</td>
+<td headers="property_type" class="gt_row gt_left">Condo</td></tr>
+    <tr><td headers="title" class="gt_row gt_left">Condo / Apartment for rent</td>
+<td headers="price" class="gt_row gt_right">2055</td>
+<td headers="lat" class="gt_row gt_right">45.49510600</td>
+<td headers="lon" class="gt_row gt_right">-73.57183700</td>
+<td headers="business_type" class="gt_row gt_left">rent</td>
+<td headers="property_type" class="gt_row gt_left">Condo</td></tr>
+    <tr><td headers="title" class="gt_row gt_left">Duplex for sale</td>
+<td headers="price" class="gt_row gt_right">649900</td>
+<td headers="lat" class="gt_row gt_right">45.43608108</td>
+<td headers="lon" class="gt_row gt_right">-73.59654725</td>
+<td headers="business_type" class="gt_row gt_left">sale</td>
+<td headers="property_type" class="gt_row gt_left">Duplex</td></tr>
+    <tr><td headers="title" class="gt_row gt_left">Condo for sale</td>
+<td headers="price" class="gt_row gt_right">730000</td>
+<td headers="lat" class="gt_row gt_right">45.51036900</td>
+<td headers="lon" class="gt_row gt_right">-73.70656400</td>
+<td headers="business_type" class="gt_row gt_left">sale</td>
+<td headers="property_type" class="gt_row gt_left">Condo</td></tr>
+    <tr><td headers="title" class="gt_row gt_left">Condo / Apartment for rent</td>
+<td headers="price" class="gt_row gt_right">4500</td>
+<td headers="lat" class="gt_row gt_right">45.49693753</td>
+<td headers="lon" class="gt_row gt_right">-73.57167258</td>
+<td headers="business_type" class="gt_row gt_left">rent</td>
+<td headers="property_type" class="gt_row gt_left">Condo</td></tr>
+    <tr><td headers="title" class="gt_row gt_left">Condo for sale</td>
+<td headers="price" class="gt_row gt_right">449000</td>
+<td headers="lat" class="gt_row gt_right">45.54414500</td>
+<td headers="lon" class="gt_row gt_right">-73.53635100</td>
+<td headers="business_type" class="gt_row gt_left">sale</td>
+<td headers="property_type" class="gt_row gt_left">Condo</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p>First I created a common layer for all examples, setting the map in Montreal, Quebec - Canada.</p>
+<pre class="r"><code>map &lt;- leaflet::leaflet() |&gt;
+    leaflet::addTiles() |&gt;
+    leaflet::setView(lat = 45.5519, lng = -73.61999, zoom = 12) |&gt;
+    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron)</code></pre>
+<div id="addmarkers" class="section level1">
+<h1>addMarkers</h1>
+<p>The problem here is that to define different icons or colours, you need to have their PNG or SVG, which gives us a lot of work, so without specifying <code>leaflet::iconList,</code> you can’t have other colours or custom icons unless you use <code>addCircles.</code></p>
+<pre class="r"><code>map |&gt;
+    leaflet::addMarkers(
+        data = centris_ca,
+        lng = ~lon,
+        lat = ~lat,
+        group = ~property_type
+    )</code></pre>
+<div class="leaflet html-widget html-fill-item" id="htmlwidget-1" style="width:672px;height:480px;"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org/copyright/\">OpenStreetMap<\/a>,  <a href=\"https://opendatacommons.org/licenses/odbl/\">ODbL<\/a>"}]},{"method":"addProviderTiles","args":["CartoDB.Positron",null,null,{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addMarkers","args":[[45.494594,45.495106,45.43608108,45.510369,45.49693753,45.544145,45.47334133,45.552634,45.5212,45.500021,45.44685219,45.5333689,45.500995,45.523504,45.494349,45.51630624,45.53109394,45.524736,45.478561,45.602491,45.51028841,45.507017,45.55444679,45.516952,45.5054,45.4924,45.521386,45.52050961,45.496016,45.52592,45.536691,45.50795279,45.507147,45.448313,45.61589004,45.552946,45.502543,45.490793,45.557399,45.51878827,45.499089,45.450896,45.51757,45.67148267,45.45121074,45.513329,45.502765,45.574084,45.561547,45.51733191,45.473835,45.4739992,45.54282628,45.526119,45.49794013,45.53351021,45.44779347,45.53312825,45.551675,45.494849,45.55745,45.56398098,45.546347,45.50229711,45.46434,45.537826,45.495106,45.533424,45.485113,45.54270226,45.51704221,45.521296,45.575874,45.53345144,45.532736,45.49545836,45.498942,45.523713,45.519321,45.45202882,45.492217,45.494849,45.519238,45.49952188,45.476957,45.500713,45.558221,45.50959506,45.560809,45.5054],[-73.57475599999999,-73.571837,-73.59654725,-73.706564,-73.57167258,-73.536351,-73.53832746,-73.54235199999999,-73.60559499999999,-73.582559,-73.60808519,-73.6806524,-73.70401,-73.61444400000001,-73.648533,-73.58214146,-73.72682856,-73.584118,-73.571906,-73.577269,-73.8225044,-73.573756,-73.54794257,-73.55427,-73.56504200000001,-73.559111,-73.553124,-73.70992728,-73.570695,-73.54924763,-73.57348,-73.57931037,-73.672346,-73.60599499999999,-73.61505007,-73.536805,-73.567684,-73.55831999999999,-73.59309,-73.58149344,-73.556346,-73.587846,-73.59607,-73.54329586,-73.64048071000001,-73.63687400000001,-73.844756,-73.54171100000001,-73.574257,-73.61097083999999,-73.53998199999999,-73.56279356,-73.57349205,-73.60690200000001,-73.58099429000001,-73.59441663,-73.59732545999999,-73.62212834,-73.54195799999999,-73.57309100000001,-73.66050199999999,-73.57389925,-73.53695500000001,-73.70572718,-73.631407,-73.603478,-73.571837,-73.686521,-73.618326,-73.56860708000001,-73.55328295,-73.60726,-73.652991,-73.67636966000001,-73.576954,-73.62575099,-73.656429,-73.73774899999999,-73.566817,-73.60537601999999,-73.62917299999999,-73.57309100000001,-73.5528,-73.57643392999999,-73.629728,-73.573274,-73.537114,-73.5708046,-73.59388,-73.56504200000001],null,null,["Condo","Condo","Duplex","Condo","Condo","Condo","Condo","Condo","Condo","House","Condo","Condo","Condo","Condo","Condo","Triplex","Duplex","Triplex","House","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","House","Condo","Condo","Condo","House","Triplex","Condo","Condo","Triplex","Condo","Condo","Condo","Condo","House","House","House","House","Condo","Condo","Condo","Condo","House","Condo","Condo","Condo","Condo","Triplex","Condo","Condo","Condo","House","Triplex","Condo","Condo","Condo","Condo","Condo","House","Triplex","Condo","Condo","Condo","Triplex","Condo","Condo","Triplex","Condo","House","Condo","House","Duplex","Condo","Condo","Condo","Condo","Condo","Triplex","Condo","Condo","Condo"],{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},null,null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"setView":[[45.5519,-73.61999],12,[]],"limits":{"lat":[45.43608108,45.67148267],"lng":[-73.844756,-73.536351]}},"evals":[],"jsHooks":[]}</script>
+<pre class="r"><code>map |&gt;
+    leaflet::addCircles(
+        data = centris_ca |&gt;
+            dplyr::mutate(
+                color = dplyr::case_when(
+                    property_type == &quot;Condo&quot; ~ &quot;blue&quot;,
+                    property_type == &quot;Duplex&quot; ~ &quot;green&quot;,
+                    property_type == &quot;House&quot; ~ &quot;red&quot;,
+                    property_type == &quot;Triplex&quot; ~ &quot;orange&quot;
+                )
+            ),
+        lng = ~lon,
+        lat = ~lat,
+        group = ~property_type,
+        color = ~color,
+        weight = 25
+    )</code></pre>
+<div class="leaflet html-widget html-fill-item" id="htmlwidget-2" style="width:672px;height:480px;"></div>
+<script type="application/json" data-for="htmlwidget-2">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org/copyright/\">OpenStreetMap<\/a>,  <a href=\"https://opendatacommons.org/licenses/odbl/\">ODbL<\/a>"}]},{"method":"addProviderTiles","args":["CartoDB.Positron",null,null,{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addCircles","args":[[45.494594,45.495106,45.43608108,45.510369,45.49693753,45.544145,45.47334133,45.552634,45.5212,45.500021,45.44685219,45.5333689,45.500995,45.523504,45.494349,45.51630624,45.53109394,45.524736,45.478561,45.602491,45.51028841,45.507017,45.55444679,45.516952,45.5054,45.4924,45.521386,45.52050961,45.496016,45.52592,45.536691,45.50795279,45.507147,45.448313,45.61589004,45.552946,45.502543,45.490793,45.557399,45.51878827,45.499089,45.450896,45.51757,45.67148267,45.45121074,45.513329,45.502765,45.574084,45.561547,45.51733191,45.473835,45.4739992,45.54282628,45.526119,45.49794013,45.53351021,45.44779347,45.53312825,45.551675,45.494849,45.55745,45.56398098,45.546347,45.50229711,45.46434,45.537826,45.495106,45.533424,45.485113,45.54270226,45.51704221,45.521296,45.575874,45.53345144,45.532736,45.49545836,45.498942,45.523713,45.519321,45.45202882,45.492217,45.494849,45.519238,45.49952188,45.476957,45.500713,45.558221,45.50959506,45.560809,45.5054],[-73.57475599999999,-73.571837,-73.59654725,-73.706564,-73.57167258,-73.536351,-73.53832746,-73.54235199999999,-73.60559499999999,-73.582559,-73.60808519,-73.6806524,-73.70401,-73.61444400000001,-73.648533,-73.58214146,-73.72682856,-73.584118,-73.571906,-73.577269,-73.8225044,-73.573756,-73.54794257,-73.55427,-73.56504200000001,-73.559111,-73.553124,-73.70992728,-73.570695,-73.54924763,-73.57348,-73.57931037,-73.672346,-73.60599499999999,-73.61505007,-73.536805,-73.567684,-73.55831999999999,-73.59309,-73.58149344,-73.556346,-73.587846,-73.59607,-73.54329586,-73.64048071000001,-73.63687400000001,-73.844756,-73.54171100000001,-73.574257,-73.61097083999999,-73.53998199999999,-73.56279356,-73.57349205,-73.60690200000001,-73.58099429000001,-73.59441663,-73.59732545999999,-73.62212834,-73.54195799999999,-73.57309100000001,-73.66050199999999,-73.57389925,-73.53695500000001,-73.70572718,-73.631407,-73.603478,-73.571837,-73.686521,-73.618326,-73.56860708000001,-73.55328295,-73.60726,-73.652991,-73.67636966000001,-73.576954,-73.62575099,-73.656429,-73.73774899999999,-73.566817,-73.60537601999999,-73.62917299999999,-73.57309100000001,-73.5528,-73.57643392999999,-73.629728,-73.573274,-73.537114,-73.5708046,-73.59388,-73.56504200000001],10,null,["Condo","Condo","Duplex","Condo","Condo","Condo","Condo","Condo","Condo","House","Condo","Condo","Condo","Condo","Condo","Triplex","Duplex","Triplex","House","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","House","Condo","Condo","Condo","House","Triplex","Condo","Condo","Triplex","Condo","Condo","Condo","Condo","House","House","House","House","Condo","Condo","Condo","Condo","House","Condo","Condo","Condo","Condo","Triplex","Condo","Condo","Condo","House","Triplex","Condo","Condo","Condo","Condo","Condo","House","Triplex","Condo","Condo","Condo","Triplex","Condo","Condo","Triplex","Condo","House","Condo","House","Duplex","Condo","Condo","Condo","Condo","Condo","Triplex","Condo","Condo","Condo"],{"interactive":true,"className":"","stroke":true,"color":["blue","blue","green","blue","blue","blue","blue","blue","blue","red","blue","blue","blue","blue","blue","orange","green","orange","red","blue","blue","blue","blue","blue","blue","blue","blue","blue","blue","blue","red","blue","blue","blue","red","orange","blue","blue","orange","blue","blue","blue","blue","red","red","red","red","blue","blue","blue","blue","red","blue","blue","blue","blue","orange","blue","blue","blue","red","orange","blue","blue","blue","blue","blue","red","orange","blue","blue","blue","orange","blue","blue","orange","blue","red","blue","red","green","blue","blue","blue","blue","blue","orange","blue","blue","blue"],"weight":25,"opacity":0.5,"fill":true,"fillColor":["blue","blue","green","blue","blue","blue","blue","blue","blue","red","blue","blue","blue","blue","blue","orange","green","orange","red","blue","blue","blue","blue","blue","blue","blue","blue","blue","blue","blue","red","blue","blue","blue","red","orange","blue","blue","orange","blue","blue","blue","blue","red","red","red","red","blue","blue","blue","blue","red","blue","blue","blue","blue","orange","blue","blue","blue","red","orange","blue","blue","blue","blue","blue","red","orange","blue","blue","blue","orange","blue","blue","orange","blue","red","blue","red","green","blue","blue","blue","blue","blue","orange","blue","blue","blue"],"fillOpacity":0.2},null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null,null]}],"setView":[[45.5519,-73.61999],12,[]],"limits":{"lat":[45.43608108,45.67148267],"lng":[-73.844756,-73.536351]}},"evals":[],"jsHooks":[]}</script>
+<p>The <code>addCircles</code> works pretty well when you aim to look for patterns in the data but not so well when you want to present the data.</p>
+</div>
+<div id="addawesomemarkers" class="section level1">
+<h1>addAwesomeMarkers</h1>
+<p>The function <code>addAwesomeMarkers</code> allows you to create markers with limited colours and icons inside it. As before, you need to map for all values, an icon and colour; the difference is that you don’t need to have the PNG or SVG; you just need to pass the icon name from the font awesome, and voila, it’ll show up on the map.</p>
+<pre class="r"><code>groups &lt;- leaflet::awesomeIconList(
+    &quot;Condo&quot; = leaflet::makeAwesomeIcon(
+        icon = &quot;building&quot;,
+        markerColor = &quot;blue&quot;,
+        library = &quot;fa&quot;
+    ),
+    &quot;Duplex&quot; = leaflet::makeAwesomeIcon(
+        icon = &quot;building&quot;,
+        markerColor = &quot;green&quot;,
+        library = &quot;fa&quot;
+    ),
+    &quot;House&quot; = leaflet::makeAwesomeIcon(
+        icon = &quot;home&quot;,
+        markerColor = &quot;red&quot;,
+        library = &quot;fa&quot;
+    ),
+    &quot;Triplex&quot; = leaflet::makeAwesomeIcon(
+        icon = &quot;building&quot;,
+        markerColor = &quot;orange&quot;,
+        library = &quot;fa&quot;
+    )
+)
+
+map |&gt;
+    leaflet::addAwesomeMarkers(
+        data = centris_ca,
+        lng = ~lon,
+        lat = ~lat,
+        icon = ~ groups[property_type],
+        group = ~property_type
+    ) |&gt;
+    leaflet::addLegend(
+        labels = unique(centris_ca$property_type),
+        colors = c(&quot;blue&quot;, &quot;green&quot;, &quot;red&quot;, &quot;orange&quot;)
+    ) |&gt;
+    leaflet::addLayersControl(
+        overlayGroups = unique(centris_ca$property_type),
+        position = &quot;bottomleft&quot;
+    )</code></pre>
+<div class="leaflet html-widget html-fill-item" id="htmlwidget-3" style="width:672px;height:480px;"></div>
+<script type="application/json" data-for="htmlwidget-3">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org/copyright/\">OpenStreetMap<\/a>,  <a href=\"https://opendatacommons.org/licenses/odbl/\">ODbL<\/a>"}]},{"method":"addProviderTiles","args":["CartoDB.Positron",null,null,{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addAwesomeMarkers","args":[[45.494594,45.495106,45.43608108,45.510369,45.49693753,45.544145,45.47334133,45.552634,45.5212,45.500021,45.44685219,45.5333689,45.500995,45.523504,45.494349,45.51630624,45.53109394,45.524736,45.478561,45.602491,45.51028841,45.507017,45.55444679,45.516952,45.5054,45.4924,45.521386,45.52050961,45.496016,45.52592,45.536691,45.50795279,45.507147,45.448313,45.61589004,45.552946,45.502543,45.490793,45.557399,45.51878827,45.499089,45.450896,45.51757,45.67148267,45.45121074,45.513329,45.502765,45.574084,45.561547,45.51733191,45.473835,45.4739992,45.54282628,45.526119,45.49794013,45.53351021,45.44779347,45.53312825,45.551675,45.494849,45.55745,45.56398098,45.546347,45.50229711,45.46434,45.537826,45.495106,45.533424,45.485113,45.54270226,45.51704221,45.521296,45.575874,45.53345144,45.532736,45.49545836,45.498942,45.523713,45.519321,45.45202882,45.492217,45.494849,45.519238,45.49952188,45.476957,45.500713,45.558221,45.50959506,45.560809,45.5054],[-73.57475599999999,-73.571837,-73.59654725,-73.706564,-73.57167258,-73.536351,-73.53832746,-73.54235199999999,-73.60559499999999,-73.582559,-73.60808519,-73.6806524,-73.70401,-73.61444400000001,-73.648533,-73.58214146,-73.72682856,-73.584118,-73.571906,-73.577269,-73.8225044,-73.573756,-73.54794257,-73.55427,-73.56504200000001,-73.559111,-73.553124,-73.70992728,-73.570695,-73.54924763,-73.57348,-73.57931037,-73.672346,-73.60599499999999,-73.61505007,-73.536805,-73.567684,-73.55831999999999,-73.59309,-73.58149344,-73.556346,-73.587846,-73.59607,-73.54329586,-73.64048071000001,-73.63687400000001,-73.844756,-73.54171100000001,-73.574257,-73.61097083999999,-73.53998199999999,-73.56279356,-73.57349205,-73.60690200000001,-73.58099429000001,-73.59441663,-73.59732545999999,-73.62212834,-73.54195799999999,-73.57309100000001,-73.66050199999999,-73.57389925,-73.53695500000001,-73.70572718,-73.631407,-73.603478,-73.571837,-73.686521,-73.618326,-73.56860708000001,-73.55328295,-73.60726,-73.652991,-73.67636966000001,-73.576954,-73.62575099,-73.656429,-73.73774899999999,-73.566817,-73.60537601999999,-73.62917299999999,-73.57309100000001,-73.5528,-73.57643392999999,-73.629728,-73.573274,-73.537114,-73.5708046,-73.59388,-73.56504200000001],{"icon":["building","building","building","building","building","building","building","building","building","home","building","building","building","building","building","building","building","building","home","building","building","building","building","building","building","building","building","building","building","building","home","building","building","building","home","building","building","building","building","building","building","building","building","home","home","home","home","building","building","building","building","home","building","building","building","building","building","building","building","building","home","building","building","building","building","building","building","home","building","building","building","building","building","building","building","building","building","home","building","home","building","building","building","building","building","building","building","building","building","building"],"markerColor":["blue","blue","green","blue","blue","blue","blue","blue","blue","red","blue","blue","blue","blue","blue","orange","green","orange","red","blue","blue","blue","blue","blue","blue","blue","blue","blue","blue","blue","red","blue","blue","blue","red","orange","blue","blue","orange","blue","blue","blue","blue","red","red","red","red","blue","blue","blue","blue","red","blue","blue","blue","blue","orange","blue","blue","blue","red","orange","blue","blue","blue","blue","blue","red","orange","blue","blue","blue","orange","blue","blue","orange","blue","red","blue","red","green","blue","blue","blue","blue","blue","orange","blue","blue","blue"],"iconColor":"white","spin":false,"squareMarker":false,"iconRotate":0,"prefix":"fa"},null,["Condo","Condo","Duplex","Condo","Condo","Condo","Condo","Condo","Condo","House","Condo","Condo","Condo","Condo","Condo","Triplex","Duplex","Triplex","House","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","House","Condo","Condo","Condo","House","Triplex","Condo","Condo","Triplex","Condo","Condo","Condo","Condo","House","House","House","House","Condo","Condo","Condo","Condo","House","Condo","Condo","Condo","Condo","Triplex","Condo","Condo","Condo","House","Triplex","Condo","Condo","Condo","Condo","Condo","House","Triplex","Condo","Condo","Condo","Triplex","Condo","Condo","Triplex","Condo","House","Condo","House","Duplex","Condo","Condo","Condo","Condo","Condo","Triplex","Condo","Condo","Condo"],{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},null,null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addLegend","args":[{"colors":["blue","green","red","orange"],"labels":["Condo","Duplex","House","Triplex"],"na_color":null,"na_label":"NA","opacity":0.5,"position":"topright","type":"unknown","title":null,"extra":null,"layerId":null,"className":"info legend","group":null}]},{"method":"addLayersControl","args":[[],["Condo","Duplex","House","Triplex"],{"collapsed":true,"autoZIndex":true,"position":"bottomleft"}]}],"setView":[[45.5519,-73.61999],12,[]],"limits":{"lat":[45.43608108,45.67148267],"lng":[-73.844756,-73.536351]}},"evals":[],"jsHooks":[]}</script>
+</div>
+<div id="addcustommakers" class="section level1">
+<h1>addCustomMakers</h1>
+<p>Now let me show a different way to generate the maps.</p>
+<div id="same-marker-and-colors" class="section level2">
+<h2>Same marker and colors</h2>
+<pre class="r"><code>map |&gt;
+    addCustomMarkers(
+        data = centris_ca |&gt;
+            dplyr::rename(group = property_type) |&gt;
+            dplyr::mutate(
+                iconWidth = 40,
+                iconHeight = 40,
+                icon = &quot;map-marker&quot;
+            ) |&gt;
+            dplyr::left_join(
+                tibble::tibble(
+                    group = unique(centris_ca$property_type),
+                    fill = c(&quot;blue&quot;, &quot;green&quot;, &quot;red&quot;, &quot;orange&quot;)
+                ),
+                by = &quot;group&quot;
+            )
+    )</code></pre>
+<div class="leaflet html-widget html-fill-item" id="htmlwidget-4" style="width:672px;height:480px;"></div>
+<script type="application/json" data-for="htmlwidget-4">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org/copyright/\">OpenStreetMap<\/a>,  <a href=\"https://opendatacommons.org/licenses/odbl/\">ODbL<\/a>"}]},{"method":"addProviderTiles","args":["CartoDB.Positron",null,null,{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addMarkers","args":[[45.494594,45.495106,45.510369,45.49693753,45.544145,45.47334133,45.552634,45.5212,45.44685219,45.5333689,45.500995,45.523504,45.494349,45.602491,45.51028841,45.507017,45.55444679,45.516952,45.5054,45.4924,45.521386,45.52050961,45.496016,45.52592,45.50795279,45.507147,45.448313,45.502543,45.490793,45.51878827,45.499089,45.450896,45.51757,45.574084,45.561547,45.51733191,45.473835,45.54282628,45.526119,45.49794013,45.53351021,45.53312825,45.551675,45.494849,45.546347,45.50229711,45.46434,45.537826,45.495106,45.54270226,45.51704221,45.521296,45.53345144,45.532736,45.498942,45.519321,45.494849,45.519238,45.49952188,45.476957,45.500713,45.50959506,45.560809,45.5054],[-73.57475599999999,-73.571837,-73.706564,-73.57167258,-73.536351,-73.53832746,-73.54235199999999,-73.60559499999999,-73.60808519,-73.6806524,-73.70401,-73.61444400000001,-73.648533,-73.577269,-73.8225044,-73.573756,-73.54794257,-73.55427,-73.56504200000001,-73.559111,-73.553124,-73.70992728,-73.570695,-73.54924763,-73.57931037,-73.672346,-73.60599499999999,-73.567684,-73.55831999999999,-73.58149344,-73.556346,-73.587846,-73.59607,-73.54171100000001,-73.574257,-73.61097083999999,-73.53998199999999,-73.57349205,-73.60690200000001,-73.58099429000001,-73.59441663,-73.62212834,-73.54195799999999,-73.57309100000001,-73.53695500000001,-73.70572718,-73.631407,-73.603478,-73.571837,-73.56860708000001,-73.55328295,-73.60726,-73.67636966000001,-73.576954,-73.656429,-73.566817,-73.57309100000001,-73.5528,-73.57643392999999,-73.629728,-73.573274,-73.5708046,-73.59388,-73.56504200000001],{"iconUrl":{"data":"data:image/svg+xml;base64,PHN2ZyBmaWxsPSJibHVlIiAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgMzg0IDUxMiI+PCEtLSBGb250IEF3ZXNvbWUgRnJlZSA1LjE1LjQgYnkgQGZvbnRhd2Vzb21lIC0gaHR0cHM6Ly9mb250YXdlc29tZS5jb20gTGljZW5zZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tL2xpY2Vuc2UvZnJlZSAoSWNvbnM6IENDIEJZIDQuMCwgRm9udHM6IFNJTCBPRkwgMS4xLCBDb2RlOiBNSVQgTGljZW5zZSkgLS0+PHBhdGggZD0iTTE3Mi4yNjggNTAxLjY3QzI2Ljk3IDI5MS4wMzEgMCAyNjkuNDEzIDAgMTkyIDAgODUuOTYxIDg1Ljk2MSAwIDE5MiAwczE5MiA4NS45NjEgMTkyIDE5MmMwIDc3LjQxMy0yNi45NyA5OS4wMzEtMTcyLjI2OCAzMDkuNjctOS41MzUgMTMuNzc0LTI5LjkzIDEzLjc3My0zOS40NjQgMHoiLz48L3N2Zz4K","index":0},"iconWidth":40,"iconHeight":40},null,["Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo"],{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},null,null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addMarkers","args":[[45.43608108,45.53109394,45.492217],[-73.59654725,-73.72682856,-73.62917299999999],{"iconUrl":{"data":"data:image/svg+xml;base64,PHN2ZyBmaWxsPSJncmVlbiIgIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDM4NCA1MTIiPjwhLS0gRm9udCBBd2Vzb21lIEZyZWUgNS4xNS40IGJ5IEBmb250YXdlc29tZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tIExpY2Vuc2UgLSBodHRwczovL2ZvbnRhd2Vzb21lLmNvbS9saWNlbnNlL2ZyZWUgKEljb25zOiBDQyBCWSA0LjAsIEZvbnRzOiBTSUwgT0ZMIDEuMSwgQ29kZTogTUlUIExpY2Vuc2UpIC0tPjxwYXRoIGQ9Ik0xNzIuMjY4IDUwMS42N0MyNi45NyAyOTEuMDMxIDAgMjY5LjQxMyAwIDE5MiAwIDg1Ljk2MSA4NS45NjEgMCAxOTIgMHMxOTIgODUuOTYxIDE5MiAxOTJjMCA3Ny40MTMtMjYuOTcgOTkuMDMxLTE3Mi4yNjggMzA5LjY3LTkuNTM1IDEzLjc3NC0yOS45MyAxMy43NzMtMzkuNDY0IDB6Ii8+PC9zdmc+Cg==","index":0},"iconWidth":40,"iconHeight":40},null,["Duplex","Duplex","Duplex"],{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},null,null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addMarkers","args":[[45.51630624,45.524736,45.552946,45.557399,45.44779347,45.56398098,45.485113,45.575874,45.49545836,45.558221],[-73.58214146,-73.584118,-73.536805,-73.59309,-73.59732545999999,-73.57389925,-73.618326,-73.652991,-73.62575099,-73.537114],{"iconUrl":{"data":"data:image/svg+xml;base64,PHN2ZyBmaWxsPSJvcmFuZ2UiICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzODQgNTEyIj48IS0tIEZvbnQgQXdlc29tZSBGcmVlIDUuMTUuNCBieSBAZm9udGF3ZXNvbWUgLSBodHRwczovL2ZvbnRhd2Vzb21lLmNvbSBMaWNlbnNlIC0gaHR0cHM6Ly9mb250YXdlc29tZS5jb20vbGljZW5zZS9mcmVlIChJY29uczogQ0MgQlkgNC4wLCBGb250czogU0lMIE9GTCAxLjEsIENvZGU6IE1JVCBMaWNlbnNlKSAtLT48cGF0aCBkPSJNMTcyLjI2OCA1MDEuNjdDMjYuOTcgMjkxLjAzMSAwIDI2OS40MTMgMCAxOTIgMCA4NS45NjEgODUuOTYxIDAgMTkyIDBzMTkyIDg1Ljk2MSAxOTIgMTkyYzAgNzcuNDEzLTI2Ljk3IDk5LjAzMS0xNzIuMjY4IDMwOS42Ny05LjUzNSAxMy43NzQtMjkuOTMgMTMuNzczLTM5LjQ2NCAweiIvPjwvc3ZnPgo=","index":0},"iconWidth":40,"iconHeight":40},null,["Triplex","Triplex","Triplex","Triplex","Triplex","Triplex","Triplex","Triplex","Triplex","Triplex"],{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},null,null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addMarkers","args":[[45.500021,45.478561,45.536691,45.61589004,45.67148267,45.45121074,45.513329,45.502765,45.4739992,45.55745,45.533424,45.523713,45.45202882],[-73.582559,-73.571906,-73.57348,-73.61505007,-73.54329586,-73.64048071000001,-73.63687400000001,-73.844756,-73.56279356,-73.66050199999999,-73.686521,-73.73774899999999,-73.60537601999999],{"iconUrl":{"data":"data:image/svg+xml;base64,PHN2ZyBmaWxsPSJyZWQiICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzODQgNTEyIj48IS0tIEZvbnQgQXdlc29tZSBGcmVlIDUuMTUuNCBieSBAZm9udGF3ZXNvbWUgLSBodHRwczovL2ZvbnRhd2Vzb21lLmNvbSBMaWNlbnNlIC0gaHR0cHM6Ly9mb250YXdlc29tZS5jb20vbGljZW5zZS9mcmVlIChJY29uczogQ0MgQlkgNC4wLCBGb250czogU0lMIE9GTCAxLjEsIENvZGU6IE1JVCBMaWNlbnNlKSAtLT48cGF0aCBkPSJNMTcyLjI2OCA1MDEuNjdDMjYuOTcgMjkxLjAzMSAwIDI2OS40MTMgMCAxOTIgMCA4NS45NjEgODUuOTYxIDAgMTkyIDBzMTkyIDg1Ljk2MSAxOTIgMTkyYzAgNzcuNDEzLTI2Ljk3IDk5LjAzMS0xNzIuMjY4IDMwOS42Ny05LjUzNSAxMy43NzQtMjkuOTMgMTMuNzczLTM5LjQ2NCAweiIvPjwvc3ZnPgo=","index":0},"iconWidth":40,"iconHeight":40},null,["House","House","House","House","House","House","House","House","House","House","House","House","House"],{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},null,null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addLegend","args":[{"colors":["blue","green","red","orange"],"labels":["Condo","Duplex","House","Triplex"],"na_color":null,"na_label":"NA","opacity":0.5,"position":"topright","type":"unknown","title":null,"extra":null,"layerId":null,"className":"info legend","group":null}]},{"method":"addLayersControl","args":[[],["Condo","Duplex","House","Triplex"],{"collapsed":true,"autoZIndex":true,"position":"bottomleft"}]}],"setView":[[45.5519,-73.61999],12,[]],"limits":{"lat":[45.43608108,45.67148267],"lng":[-73.844756,-73.536351]}},"evals":[],"jsHooks":[]}</script>
+</div>
+<div id="different-markers-and-same-color" class="section level2">
+<h2>Different markers and same color</h2>
+<pre class="r"><code>map |&gt;
+    addCustomMarkers(centris_ca |&gt;
+        dplyr::rename(group = property_type) |&gt;
+        dplyr::mutate(
+            iconWidth = 40,
+            iconHeight = 40
+        ) |&gt;
+        dplyr::left_join(
+            tibble::tibble(
+                group = unique(centris_ca$property_type),
+                fill = c(&quot;blue&quot;, &quot;green&quot;, &quot;red&quot;, &quot;orange&quot;),
+                icon = c(&quot;building&quot;, &quot;building&quot;, &quot;home&quot;, &quot;building&quot;)
+            ),
+            by = &quot;group&quot;
+        ))</code></pre>
+<div class="leaflet html-widget html-fill-item" id="htmlwidget-5" style="width:672px;height:480px;"></div>
+<script type="application/json" data-for="htmlwidget-5">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org/copyright/\">OpenStreetMap<\/a>,  <a href=\"https://opendatacommons.org/licenses/odbl/\">ODbL<\/a>"}]},{"method":"addProviderTiles","args":["CartoDB.Positron",null,null,{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addMarkers","args":[[45.494594,45.495106,45.510369,45.49693753,45.544145,45.47334133,45.552634,45.5212,45.44685219,45.5333689,45.500995,45.523504,45.494349,45.602491,45.51028841,45.507017,45.55444679,45.516952,45.5054,45.4924,45.521386,45.52050961,45.496016,45.52592,45.50795279,45.507147,45.448313,45.502543,45.490793,45.51878827,45.499089,45.450896,45.51757,45.574084,45.561547,45.51733191,45.473835,45.54282628,45.526119,45.49794013,45.53351021,45.53312825,45.551675,45.494849,45.546347,45.50229711,45.46434,45.537826,45.495106,45.54270226,45.51704221,45.521296,45.53345144,45.532736,45.498942,45.519321,45.494849,45.519238,45.49952188,45.476957,45.500713,45.50959506,45.560809,45.5054],[-73.57475599999999,-73.571837,-73.706564,-73.57167258,-73.536351,-73.53832746,-73.54235199999999,-73.60559499999999,-73.60808519,-73.6806524,-73.70401,-73.61444400000001,-73.648533,-73.577269,-73.8225044,-73.573756,-73.54794257,-73.55427,-73.56504200000001,-73.559111,-73.553124,-73.70992728,-73.570695,-73.54924763,-73.57931037,-73.672346,-73.60599499999999,-73.567684,-73.55831999999999,-73.58149344,-73.556346,-73.587846,-73.59607,-73.54171100000001,-73.574257,-73.61097083999999,-73.53998199999999,-73.57349205,-73.60690200000001,-73.58099429000001,-73.59441663,-73.62212834,-73.54195799999999,-73.57309100000001,-73.53695500000001,-73.70572718,-73.631407,-73.603478,-73.571837,-73.56860708000001,-73.55328295,-73.60726,-73.67636966000001,-73.576954,-73.656429,-73.566817,-73.57309100000001,-73.5528,-73.57643392999999,-73.629728,-73.573274,-73.5708046,-73.59388,-73.56504200000001],{"iconUrl":{"data":"data:image/svg+xml;base64,PHN2ZyBmaWxsPSJibHVlIiAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgNDQ4IDUxMiI+PCEtLSBGb250IEF3ZXNvbWUgRnJlZSA1LjE1LjQgYnkgQGZvbnRhd2Vzb21lIC0gaHR0cHM6Ly9mb250YXdlc29tZS5jb20gTGljZW5zZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tL2xpY2Vuc2UvZnJlZSAoSWNvbnM6IENDIEJZIDQuMCwgRm9udHM6IFNJTCBPRkwgMS4xLCBDb2RlOiBNSVQgTGljZW5zZSkgLS0+PHBhdGggZD0iTTQzNiA0ODBoLTIwVjI0YzAtMTMuMjU1LTEwLjc0NS0yNC0yNC0yNEg1NkM0Mi43NDUgMCAzMiAxMC43NDUgMzIgMjR2NDU2SDEyYy02LjYyNyAwLTEyIDUuMzczLTEyIDEydjIwaDQ0OHYtMjBjMC02LjYyNy01LjM3My0xMi0xMi0xMnpNMTI4IDc2YzAtNi42MjcgNS4zNzMtMTIgMTItMTJoNDBjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnY0MGMwIDYuNjI3LTUuMzczIDEyLTEyIDEyaC00MGMtNi42MjcgMC0xMi01LjM3My0xMi0xMlY3NnptMCA5NmMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDQwYzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2NDBjMCA2LjYyNy01LjM3MyAxMi0xMiAxMmgtNDBjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJ2LTQwem01MiAxNDhoLTQwYy02LjYyNyAwLTEyLTUuMzczLTEyLTEydi00MGMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDQwYzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2NDBjMCA2LjYyNy01LjM3MyAxMi0xMiAxMnptNzYgMTYwaC02NHYtODRjMC02LjYyNyA1LjM3My0xMiAxMi0xMmg0MGM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjg0em02NC0xNzJjMCA2LjYyNy01LjM3MyAxMi0xMiAxMmgtNDBjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJ2LTQwYzAtNi42MjcgNS4zNzMtMTIgMTItMTJoNDBjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnY0MHptMC05NmMwIDYuNjI3LTUuMzczIDEyLTEyIDEyaC00MGMtNi42MjcgMC0xMi01LjM3My0xMi0xMnYtNDBjMC02LjYyNyA1LjM3My0xMiAxMi0xMmg0MGM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjQwem0wLTk2YzAgNi42MjctNS4zNzMgMTItMTIgMTJoLTQwYy02LjYyNyAwLTEyLTUuMzczLTEyLTEyVjc2YzAtNi42MjcgNS4zNzMtMTIgMTItMTJoNDBjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnY0MHoiLz48L3N2Zz4K","index":0},"iconWidth":40,"iconHeight":40},null,["Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo"],{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},null,null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addMarkers","args":[[45.43608108,45.53109394,45.492217],[-73.59654725,-73.72682856,-73.62917299999999],{"iconUrl":{"data":"data:image/svg+xml;base64,PHN2ZyBmaWxsPSJncmVlbiIgIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDQ0OCA1MTIiPjwhLS0gRm9udCBBd2Vzb21lIEZyZWUgNS4xNS40IGJ5IEBmb250YXdlc29tZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tIExpY2Vuc2UgLSBodHRwczovL2ZvbnRhd2Vzb21lLmNvbS9saWNlbnNlL2ZyZWUgKEljb25zOiBDQyBCWSA0LjAsIEZvbnRzOiBTSUwgT0ZMIDEuMSwgQ29kZTogTUlUIExpY2Vuc2UpIC0tPjxwYXRoIGQ9Ik00MzYgNDgwaC0yMFYyNGMwLTEzLjI1NS0xMC43NDUtMjQtMjQtMjRINTZDNDIuNzQ1IDAgMzIgMTAuNzQ1IDMyIDI0djQ1NkgxMmMtNi42MjcgMC0xMiA1LjM3My0xMiAxMnYyMGg0NDh2LTIwYzAtNi42MjctNS4zNzMtMTItMTItMTJ6TTEyOCA3NmMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDQwYzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2NDBjMCA2LjYyNy01LjM3MyAxMi0xMiAxMmgtNDBjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJWNzZ6bTAgOTZjMC02LjYyNyA1LjM3My0xMiAxMi0xMmg0MGM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjQwYzAgNi42MjctNS4zNzMgMTItMTIgMTJoLTQwYy02LjYyNyAwLTEyLTUuMzczLTEyLTEydi00MHptNTIgMTQ4aC00MGMtNi42MjcgMC0xMi01LjM3My0xMi0xMnYtNDBjMC02LjYyNyA1LjM3My0xMiAxMi0xMmg0MGM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjQwYzAgNi42MjctNS4zNzMgMTItMTIgMTJ6bTc2IDE2MGgtNjR2LTg0YzAtNi42MjcgNS4zNzMtMTIgMTItMTJoNDBjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnY4NHptNjQtMTcyYzAgNi42MjctNS4zNzMgMTItMTIgMTJoLTQwYy02LjYyNyAwLTEyLTUuMzczLTEyLTEydi00MGMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDQwYzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2NDB6bTAtOTZjMCA2LjYyNy01LjM3MyAxMi0xMiAxMmgtNDBjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJ2LTQwYzAtNi42MjcgNS4zNzMtMTIgMTItMTJoNDBjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnY0MHptMC05NmMwIDYuNjI3LTUuMzczIDEyLTEyIDEyaC00MGMtNi42MjcgMC0xMi01LjM3My0xMi0xMlY3NmMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDQwYzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2NDB6Ii8+PC9zdmc+Cg==","index":0},"iconWidth":40,"iconHeight":40},null,["Duplex","Duplex","Duplex"],{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},null,null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addMarkers","args":[[45.51630624,45.524736,45.552946,45.557399,45.44779347,45.56398098,45.485113,45.575874,45.49545836,45.558221],[-73.58214146,-73.584118,-73.536805,-73.59309,-73.59732545999999,-73.57389925,-73.618326,-73.652991,-73.62575099,-73.537114],{"iconUrl":{"data":"data:image/svg+xml;base64,PHN2ZyBmaWxsPSJvcmFuZ2UiICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NDggNTEyIj48IS0tIEZvbnQgQXdlc29tZSBGcmVlIDUuMTUuNCBieSBAZm9udGF3ZXNvbWUgLSBodHRwczovL2ZvbnRhd2Vzb21lLmNvbSBMaWNlbnNlIC0gaHR0cHM6Ly9mb250YXdlc29tZS5jb20vbGljZW5zZS9mcmVlIChJY29uczogQ0MgQlkgNC4wLCBGb250czogU0lMIE9GTCAxLjEsIENvZGU6IE1JVCBMaWNlbnNlKSAtLT48cGF0aCBkPSJNNDM2IDQ4MGgtMjBWMjRjMC0xMy4yNTUtMTAuNzQ1LTI0LTI0LTI0SDU2QzQyLjc0NSAwIDMyIDEwLjc0NSAzMiAyNHY0NTZIMTJjLTYuNjI3IDAtMTIgNS4zNzMtMTIgMTJ2MjBoNDQ4di0yMGMwLTYuNjI3LTUuMzczLTEyLTEyLTEyek0xMjggNzZjMC02LjYyNyA1LjM3My0xMiAxMi0xMmg0MGM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjQwYzAgNi42MjctNS4zNzMgMTItMTIgMTJoLTQwYy02LjYyNyAwLTEyLTUuMzczLTEyLTEyVjc2em0wIDk2YzAtNi42MjcgNS4zNzMtMTIgMTItMTJoNDBjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnY0MGMwIDYuNjI3LTUuMzczIDEyLTEyIDEyaC00MGMtNi42MjcgMC0xMi01LjM3My0xMi0xMnYtNDB6bTUyIDE0OGgtNDBjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJ2LTQwYzAtNi42MjcgNS4zNzMtMTIgMTItMTJoNDBjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnY0MGMwIDYuNjI3LTUuMzczIDEyLTEyIDEyem03NiAxNjBoLTY0di04NGMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDQwYzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2ODR6bTY0LTE3MmMwIDYuNjI3LTUuMzczIDEyLTEyIDEyaC00MGMtNi42MjcgMC0xMi01LjM3My0xMi0xMnYtNDBjMC02LjYyNyA1LjM3My0xMiAxMi0xMmg0MGM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjQwem0wLTk2YzAgNi42MjctNS4zNzMgMTItMTIgMTJoLTQwYy02LjYyNyAwLTEyLTUuMzczLTEyLTEydi00MGMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDQwYzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2NDB6bTAtOTZjMCA2LjYyNy01LjM3MyAxMi0xMiAxMmgtNDBjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJWNzZjMC02LjYyNyA1LjM3My0xMiAxMi0xMmg0MGM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjQweiIvPjwvc3ZnPgo=","index":0},"iconWidth":40,"iconHeight":40},null,["Triplex","Triplex","Triplex","Triplex","Triplex","Triplex","Triplex","Triplex","Triplex","Triplex"],{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},null,null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addMarkers","args":[[45.500021,45.478561,45.536691,45.61589004,45.67148267,45.45121074,45.513329,45.502765,45.4739992,45.55745,45.533424,45.523713,45.45202882],[-73.582559,-73.571906,-73.57348,-73.61505007,-73.54329586,-73.64048071000001,-73.63687400000001,-73.844756,-73.56279356,-73.66050199999999,-73.686521,-73.73774899999999,-73.60537601999999],{"iconUrl":{"data":"data:image/svg+xml;base64,PHN2ZyBmaWxsPSJyZWQiICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NzYgNTEyIj48IS0tIEZvbnQgQXdlc29tZSBGcmVlIDUuMTUuNCBieSBAZm9udGF3ZXNvbWUgLSBodHRwczovL2ZvbnRhd2Vzb21lLmNvbSBMaWNlbnNlIC0gaHR0cHM6Ly9mb250YXdlc29tZS5jb20vbGljZW5zZS9mcmVlIChJY29uczogQ0MgQlkgNC4wLCBGb250czogU0lMIE9GTCAxLjEsIENvZGU6IE1JVCBMaWNlbnNlKSAtLT48cGF0aCBkPSJNMjgwLjM3IDE0OC4yNkw5NiAzMDAuMTFWNDY0YTE2IDE2IDAgMCAwIDE2IDE2bDExMi4wNi0uMjlhMTYgMTYgMCAwIDAgMTUuOTItMTZWMzY4YTE2IDE2IDAgMCAxIDE2LTE2aDY0YTE2IDE2IDAgMCAxIDE2IDE2djk1LjY0YTE2IDE2IDAgMCAwIDE2IDE2LjA1TDQ2NCA0ODBhMTYgMTYgMCAwIDAgMTYtMTZWMzAwTDI5NS42NyAxNDguMjZhMTIuMTkgMTIuMTkgMCAwIDAtMTUuMyAwek01NzEuNiAyNTEuNDdMNDg4IDE4Mi41NlY0NC4wNWExMiAxMiAwIDAgMC0xMi0xMmgtNTZhMTIgMTIgMCAwIDAtMTIgMTJ2NzIuNjFMMzE4LjQ3IDQzYTQ4IDQ4IDAgMCAwLTYxIDBMNC4zNCAyNTEuNDdhMTIgMTIgMCAwIDAtMS42IDE2LjlsMjUuNSAzMUExMiAxMiAwIDAgMCA0NS4xNSAzMDFsMjM1LjIyLTE5My43NGExMi4xOSAxMi4xOSAwIDAgMSAxNS4zIDBMNTMwLjkgMzAxYTEyIDEyIDAgMCAwIDE2LjktMS42bDI1LjUtMzFhMTIgMTIgMCAwIDAtMS43LTE2LjkzeiIvPjwvc3ZnPgo=","index":0},"iconWidth":40,"iconHeight":40},null,["House","House","House","House","House","House","House","House","House","House","House","House","House"],{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},null,null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addLegend","args":[{"colors":["blue","green","red","orange"],"labels":["Condo","Duplex","House","Triplex"],"na_color":null,"na_label":"NA","opacity":0.5,"position":"topright","type":"unknown","title":null,"extra":null,"layerId":null,"className":"info legend","group":null}]},{"method":"addLayersControl","args":[[],["Condo","Duplex","House","Triplex"],{"collapsed":true,"autoZIndex":true,"position":"bottomleft"}]}],"setView":[[45.5519,-73.61999],12,[]],"limits":{"lat":[45.43608108,45.67148267],"lng":[-73.844756,-73.536351]}},"evals":[],"jsHooks":[]}</script>
+<p>Looking at it from afar, it looks like a mess, but you get a better experience when you zoom in.</p>
+</div>
+<div id="different-markers-and-colors" class="section level2">
+<h2>Different markers and colors</h2>
+<p>And finally and above all, the pallet colours flexibility, you can see in the code below, I set a pallet from the <code>wesanderson</code> package, which is some HEX
+colors, and it worked very well.</p>
+<pre class="r"><code>map |&gt;
+    addCustomMarkers(centris_ca |&gt;
+        dplyr::rename(group = property_type) |&gt;
+        dplyr::mutate(
+            iconWidth = 40,
+            iconHeight = 40
+        ) |&gt;
+        dplyr::left_join(
+            tibble::tibble(
+                group = unique(centris_ca$property_type),
+                fill = wesanderson::wes_palette(&quot;Zissou1&quot;)[-1],
+                icon = c(&quot;building&quot;, &quot;building&quot;, &quot;home&quot;, &quot;building&quot;)
+            ),
+            by = &quot;group&quot;
+        ))</code></pre>
+<pre><code>## Registered S3 method overwritten by &#39;wesanderson&#39;:
+##   method        from
+##   print.palette aw</code></pre>
+<div class="leaflet html-widget html-fill-item" id="htmlwidget-6" style="width:672px;height:480px;"></div>
+<script type="application/json" data-for="htmlwidget-6">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"calls":[{"method":"addTiles","args":["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",null,null,{"minZoom":0,"maxZoom":18,"tileSize":256,"subdomains":"abc","errorTileUrl":"","tms":false,"noWrap":false,"zoomOffset":0,"zoomReverse":false,"opacity":1,"zIndex":1,"detectRetina":false,"attribution":"&copy; <a href=\"https://openstreetmap.org/copyright/\">OpenStreetMap<\/a>,  <a href=\"https://opendatacommons.org/licenses/odbl/\">ODbL<\/a>"}]},{"method":"addProviderTiles","args":["CartoDB.Positron",null,null,{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addMarkers","args":[[45.494594,45.495106,45.510369,45.49693753,45.544145,45.47334133,45.552634,45.5212,45.44685219,45.5333689,45.500995,45.523504,45.494349,45.602491,45.51028841,45.507017,45.55444679,45.516952,45.5054,45.4924,45.521386,45.52050961,45.496016,45.52592,45.50795279,45.507147,45.448313,45.502543,45.490793,45.51878827,45.499089,45.450896,45.51757,45.574084,45.561547,45.51733191,45.473835,45.54282628,45.526119,45.49794013,45.53351021,45.53312825,45.551675,45.494849,45.546347,45.50229711,45.46434,45.537826,45.495106,45.54270226,45.51704221,45.521296,45.53345144,45.532736,45.498942,45.519321,45.494849,45.519238,45.49952188,45.476957,45.500713,45.50959506,45.560809,45.5054],[-73.57475599999999,-73.571837,-73.706564,-73.57167258,-73.536351,-73.53832746,-73.54235199999999,-73.60559499999999,-73.60808519,-73.6806524,-73.70401,-73.61444400000001,-73.648533,-73.577269,-73.8225044,-73.573756,-73.54794257,-73.55427,-73.56504200000001,-73.559111,-73.553124,-73.70992728,-73.570695,-73.54924763,-73.57931037,-73.672346,-73.60599499999999,-73.567684,-73.55831999999999,-73.58149344,-73.556346,-73.587846,-73.59607,-73.54171100000001,-73.574257,-73.61097083999999,-73.53998199999999,-73.57349205,-73.60690200000001,-73.58099429000001,-73.59441663,-73.62212834,-73.54195799999999,-73.57309100000001,-73.53695500000001,-73.70572718,-73.631407,-73.603478,-73.571837,-73.56860708000001,-73.55328295,-73.60726,-73.67636966000001,-73.576954,-73.656429,-73.566817,-73.57309100000001,-73.5528,-73.57643392999999,-73.629728,-73.573274,-73.5708046,-73.59388,-73.56504200000001],{"iconUrl":{"data":"data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjNzhCN0M1IiAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgNDQ4IDUxMiI+PCEtLSBGb250IEF3ZXNvbWUgRnJlZSA1LjE1LjQgYnkgQGZvbnRhd2Vzb21lIC0gaHR0cHM6Ly9mb250YXdlc29tZS5jb20gTGljZW5zZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tL2xpY2Vuc2UvZnJlZSAoSWNvbnM6IENDIEJZIDQuMCwgRm9udHM6IFNJTCBPRkwgMS4xLCBDb2RlOiBNSVQgTGljZW5zZSkgLS0+PHBhdGggZD0iTTQzNiA0ODBoLTIwVjI0YzAtMTMuMjU1LTEwLjc0NS0yNC0yNC0yNEg1NkM0Mi43NDUgMCAzMiAxMC43NDUgMzIgMjR2NDU2SDEyYy02LjYyNyAwLTEyIDUuMzczLTEyIDEydjIwaDQ0OHYtMjBjMC02LjYyNy01LjM3My0xMi0xMi0xMnpNMTI4IDc2YzAtNi42MjcgNS4zNzMtMTIgMTItMTJoNDBjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnY0MGMwIDYuNjI3LTUuMzczIDEyLTEyIDEyaC00MGMtNi42MjcgMC0xMi01LjM3My0xMi0xMlY3NnptMCA5NmMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDQwYzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2NDBjMCA2LjYyNy01LjM3MyAxMi0xMiAxMmgtNDBjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJ2LTQwem01MiAxNDhoLTQwYy02LjYyNyAwLTEyLTUuMzczLTEyLTEydi00MGMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDQwYzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2NDBjMCA2LjYyNy01LjM3MyAxMi0xMiAxMnptNzYgMTYwaC02NHYtODRjMC02LjYyNyA1LjM3My0xMiAxMi0xMmg0MGM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjg0em02NC0xNzJjMCA2LjYyNy01LjM3MyAxMi0xMiAxMmgtNDBjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJ2LTQwYzAtNi42MjcgNS4zNzMtMTIgMTItMTJoNDBjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnY0MHptMC05NmMwIDYuNjI3LTUuMzczIDEyLTEyIDEyaC00MGMtNi42MjcgMC0xMi01LjM3My0xMi0xMnYtNDBjMC02LjYyNyA1LjM3My0xMiAxMi0xMmg0MGM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjQwem0wLTk2YzAgNi42MjctNS4zNzMgMTItMTIgMTJoLTQwYy02LjYyNyAwLTEyLTUuMzczLTEyLTEyVjc2YzAtNi42MjcgNS4zNzMtMTIgMTItMTJoNDBjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnY0MHoiLz48L3N2Zz4K","index":0},"iconWidth":40,"iconHeight":40},null,["Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo","Condo"],{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},null,null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addMarkers","args":[[45.500021,45.478561,45.536691,45.61589004,45.67148267,45.45121074,45.513329,45.502765,45.4739992,45.55745,45.533424,45.523713,45.45202882],[-73.582559,-73.571906,-73.57348,-73.61505007,-73.54329586,-73.64048071000001,-73.63687400000001,-73.844756,-73.56279356,-73.66050199999999,-73.686521,-73.73774899999999,-73.60537601999999],{"iconUrl":{"data":"data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRTFBRjAwIiAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgNTc2IDUxMiI+PCEtLSBGb250IEF3ZXNvbWUgRnJlZSA1LjE1LjQgYnkgQGZvbnRhd2Vzb21lIC0gaHR0cHM6Ly9mb250YXdlc29tZS5jb20gTGljZW5zZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tL2xpY2Vuc2UvZnJlZSAoSWNvbnM6IENDIEJZIDQuMCwgRm9udHM6IFNJTCBPRkwgMS4xLCBDb2RlOiBNSVQgTGljZW5zZSkgLS0+PHBhdGggZD0iTTI4MC4zNyAxNDguMjZMOTYgMzAwLjExVjQ2NGExNiAxNiAwIDAgMCAxNiAxNmwxMTIuMDYtLjI5YTE2IDE2IDAgMCAwIDE1LjkyLTE2VjM2OGExNiAxNiAwIDAgMSAxNi0xNmg2NGExNiAxNiAwIDAgMSAxNiAxNnY5NS42NGExNiAxNiAwIDAgMCAxNiAxNi4wNUw0NjQgNDgwYTE2IDE2IDAgMCAwIDE2LTE2VjMwMEwyOTUuNjcgMTQ4LjI2YTEyLjE5IDEyLjE5IDAgMCAwLTE1LjMgMHpNNTcxLjYgMjUxLjQ3TDQ4OCAxODIuNTZWNDQuMDVhMTIgMTIgMCAwIDAtMTItMTJoLTU2YTEyIDEyIDAgMCAwLTEyIDEydjcyLjYxTDMxOC40NyA0M2E0OCA0OCAwIDAgMC02MSAwTDQuMzQgMjUxLjQ3YTEyIDEyIDAgMCAwLTEuNiAxNi45bDI1LjUgMzFBMTIgMTIgMCAwIDAgNDUuMTUgMzAxbDIzNS4yMi0xOTMuNzRhMTIuMTkgMTIuMTkgMCAwIDEgMTUuMyAwTDUzMC45IDMwMWExMiAxMiAwIDAgMCAxNi45LTEuNmwyNS41LTMxYTEyIDEyIDAgMCAwLTEuNy0xNi45M3oiLz48L3N2Zz4K","index":0},"iconWidth":40,"iconHeight":40},null,["House","House","House","House","House","House","House","House","House","House","House","House","House"],{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},null,null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addMarkers","args":[[45.43608108,45.53109394,45.492217],[-73.59654725,-73.72682856,-73.62917299999999],{"iconUrl":{"data":"data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRUJDQzJBIiAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgNDQ4IDUxMiI+PCEtLSBGb250IEF3ZXNvbWUgRnJlZSA1LjE1LjQgYnkgQGZvbnRhd2Vzb21lIC0gaHR0cHM6Ly9mb250YXdlc29tZS5jb20gTGljZW5zZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tL2xpY2Vuc2UvZnJlZSAoSWNvbnM6IENDIEJZIDQuMCwgRm9udHM6IFNJTCBPRkwgMS4xLCBDb2RlOiBNSVQgTGljZW5zZSkgLS0+PHBhdGggZD0iTTQzNiA0ODBoLTIwVjI0YzAtMTMuMjU1LTEwLjc0NS0yNC0yNC0yNEg1NkM0Mi43NDUgMCAzMiAxMC43NDUgMzIgMjR2NDU2SDEyYy02LjYyNyAwLTEyIDUuMzczLTEyIDEydjIwaDQ0OHYtMjBjMC02LjYyNy01LjM3My0xMi0xMi0xMnpNMTI4IDc2YzAtNi42MjcgNS4zNzMtMTIgMTItMTJoNDBjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnY0MGMwIDYuNjI3LTUuMzczIDEyLTEyIDEyaC00MGMtNi42MjcgMC0xMi01LjM3My0xMi0xMlY3NnptMCA5NmMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDQwYzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2NDBjMCA2LjYyNy01LjM3MyAxMi0xMiAxMmgtNDBjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJ2LTQwem01MiAxNDhoLTQwYy02LjYyNyAwLTEyLTUuMzczLTEyLTEydi00MGMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDQwYzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2NDBjMCA2LjYyNy01LjM3MyAxMi0xMiAxMnptNzYgMTYwaC02NHYtODRjMC02LjYyNyA1LjM3My0xMiAxMi0xMmg0MGM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjg0em02NC0xNzJjMCA2LjYyNy01LjM3MyAxMi0xMiAxMmgtNDBjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJ2LTQwYzAtNi42MjcgNS4zNzMtMTIgMTItMTJoNDBjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnY0MHptMC05NmMwIDYuNjI3LTUuMzczIDEyLTEyIDEyaC00MGMtNi42MjcgMC0xMi01LjM3My0xMi0xMnYtNDBjMC02LjYyNyA1LjM3My0xMiAxMi0xMmg0MGM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjQwem0wLTk2YzAgNi42MjctNS4zNzMgMTItMTIgMTJoLTQwYy02LjYyNyAwLTEyLTUuMzczLTEyLTEyVjc2YzAtNi42MjcgNS4zNzMtMTIgMTItMTJoNDBjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnY0MHoiLz48L3N2Zz4K","index":0},"iconWidth":40,"iconHeight":40},null,["Duplex","Duplex","Duplex"],{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},null,null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addMarkers","args":[[45.51630624,45.524736,45.552946,45.557399,45.44779347,45.56398098,45.485113,45.575874,45.49545836,45.558221],[-73.58214146,-73.584118,-73.536805,-73.59309,-73.59732545999999,-73.57389925,-73.618326,-73.652991,-73.62575099,-73.537114],{"iconUrl":{"data":"data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRjIxQTAwIiAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgNDQ4IDUxMiI+PCEtLSBGb250IEF3ZXNvbWUgRnJlZSA1LjE1LjQgYnkgQGZvbnRhd2Vzb21lIC0gaHR0cHM6Ly9mb250YXdlc29tZS5jb20gTGljZW5zZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tL2xpY2Vuc2UvZnJlZSAoSWNvbnM6IENDIEJZIDQuMCwgRm9udHM6IFNJTCBPRkwgMS4xLCBDb2RlOiBNSVQgTGljZW5zZSkgLS0+PHBhdGggZD0iTTQzNiA0ODBoLTIwVjI0YzAtMTMuMjU1LTEwLjc0NS0yNC0yNC0yNEg1NkM0Mi43NDUgMCAzMiAxMC43NDUgMzIgMjR2NDU2SDEyYy02LjYyNyAwLTEyIDUuMzczLTEyIDEydjIwaDQ0OHYtMjBjMC02LjYyNy01LjM3My0xMi0xMi0xMnpNMTI4IDc2YzAtNi42MjcgNS4zNzMtMTIgMTItMTJoNDBjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnY0MGMwIDYuNjI3LTUuMzczIDEyLTEyIDEyaC00MGMtNi42MjcgMC0xMi01LjM3My0xMi0xMlY3NnptMCA5NmMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDQwYzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2NDBjMCA2LjYyNy01LjM3MyAxMi0xMiAxMmgtNDBjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJ2LTQwem01MiAxNDhoLTQwYy02LjYyNyAwLTEyLTUuMzczLTEyLTEydi00MGMwLTYuNjI3IDUuMzczLTEyIDEyLTEyaDQwYzYuNjI3IDAgMTIgNS4zNzMgMTIgMTJ2NDBjMCA2LjYyNy01LjM3MyAxMi0xMiAxMnptNzYgMTYwaC02NHYtODRjMC02LjYyNyA1LjM3My0xMiAxMi0xMmg0MGM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjg0em02NC0xNzJjMCA2LjYyNy01LjM3MyAxMi0xMiAxMmgtNDBjLTYuNjI3IDAtMTItNS4zNzMtMTItMTJ2LTQwYzAtNi42MjcgNS4zNzMtMTIgMTItMTJoNDBjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnY0MHptMC05NmMwIDYuNjI3LTUuMzczIDEyLTEyIDEyaC00MGMtNi42MjcgMC0xMi01LjM3My0xMi0xMnYtNDBjMC02LjYyNyA1LjM3My0xMiAxMi0xMmg0MGM2LjYyNyAwIDEyIDUuMzczIDEyIDEydjQwem0wLTk2YzAgNi42MjctNS4zNzMgMTItMTIgMTJoLTQwYy02LjYyNyAwLTEyLTUuMzczLTEyLTEyVjc2YzAtNi42MjcgNS4zNzMtMTIgMTItMTJoNDBjNi42MjcgMCAxMiA1LjM3MyAxMiAxMnY0MHoiLz48L3N2Zz4K","index":0},"iconWidth":40,"iconHeight":40},null,["Triplex","Triplex","Triplex","Triplex","Triplex","Triplex","Triplex","Triplex","Triplex","Triplex"],{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},null,null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]},{"method":"addLegend","args":[{"colors":["#78B7C5","#EBCC2A","#E1AF00","#F21A00"],"labels":["Condo","Duplex","House","Triplex"],"na_color":null,"na_label":"NA","opacity":0.5,"position":"topright","type":"unknown","title":null,"extra":null,"layerId":null,"className":"info legend","group":null}]},{"method":"addLayersControl","args":[[],["Condo","Duplex","House","Triplex"],{"collapsed":true,"autoZIndex":true,"position":"bottomleft"}]}],"setView":[[45.5519,-73.61999],12,[]],"limits":{"lat":[45.43608108,45.67148267],"lng":[-73.844756,-73.536351]}},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+<div id="conclusion" class="section level1">
+<h1>Conclusion</h1>
+<p>Now you have more flexibility and control to build your maps; your problem now is creating a nice relation between the icon and colors which is the hardest part, 🤣.</p>
+<p>Happy coding!</p>
+</div>
