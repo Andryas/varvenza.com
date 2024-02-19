@@ -1,0 +1,218 @@
+---
+title: Enhancing Map Visualizations in Leaflet with Custom Markers and Colors in R
+author: Andryas Wavrzenczak
+date: '2024-01-31'
+slug: "enhancing-map-visualizations-in-leaflet-with-custom-markers-and-colors-in-r"
+draft: false
+series_order: 13
+tags: ['leaflet', 'icons', 'maps']
+output:
+  html_document:
+    self_contained: true
+---
+
+Leaflet is one of the best open-source JavaScript libraries for map visualizations, and its integration with R is excellent; however, only one minor detail bordering me, the limitation of 19 colours for the markers, besides the exhaustive way to map each value to each icon and colour.
+
+![](https://storage.googleapis.com/varvenza/04-leaflet-icon/Screenshot%202024-02-01%20at%2010.16.19%E2%80%AFAM.png)
+
+Not everything can be expressed in light red, red and dark red; sometimes, you
+need something in between.
+
+To solve this little problem, I created a new function called `addCustomMakers,` which provides a different way to create markers on maps and gives more flexibility for the icons and colours.
+
+Using my `addCustomMakers,` you need to add to your data.frame if you wish 7 columns, besides the must-have **lat** and **lon**, which are
+
+- `iconHeight` and `iconWidth`,
+- `icon` from [Bootstrap Icon](https://icons.getbootstrap.com/) or [FontAwesome](https://github.com/FortAwesome/Font-Awesome/tree/master/svgs)
+- `group` the grouping variable, in the following examples would be the property_type, house, duplex, condo etc...
+- `fill` a color which could be a hex
+- `source` fontawesome or bootstrap libraries
+- `solid` if source font awesome, solid TRUE or FALSE; if FALSE, then it uses the regular version; otherwise, the solid version.
+
+The key points are:
+
+- you can switch between libraries, i.e., fontawesome or bootstrap icon, per row
+- you have your icons on the map instead of markers with the icons inside
+- you have the flexibility to choose any colour you want, which brings us to use palettes already made, like the Wes Anderson.
+
+
+Let me show you. First let's start the way available in the leaflet package
+using the dataset from my package (centris_ca).
+
+```{r, message = FALSE}
+library(aw)
+```
+
+The first 6 rows of the dataset.
+
+```{r}
+head(centris_ca) |>
+    gt::gt()
+```
+
+First I created a common layer for all examples, setting the map in Montreal, Quebec - Canada.
+
+```{r}
+map <- leaflet::leaflet() |>
+    leaflet::addTiles() |>
+    leaflet::setView(lat = 45.5519, lng = -73.61999, zoom = 12) |>
+    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron)
+```
+
+# addMarkers
+
+The problem here is that to define different icons or colours, you need to have their PNG or SVG, which gives us a lot of work, so without specifying `leaflet::iconList,` you can't have other colours or custom icons unless you use `addCircles.`
+
+```{r}
+map |>
+    leaflet::addMarkers(
+        data = centris_ca,
+        lng = ~lon,
+        lat = ~lat,
+        group = ~property_type
+    )
+
+map |>
+    leaflet::addCircles(
+        data = centris_ca |>
+            dplyr::mutate(
+                color = dplyr::case_when(
+                    property_type == "Condo" ~ "blue",
+                    property_type == "Duplex" ~ "green",
+                    property_type == "House" ~ "red",
+                    property_type == "Triplex" ~ "orange"
+                )
+            ),
+        lng = ~lon,
+        lat = ~lat,
+        group = ~property_type,
+        color = ~color,
+        weight = 25
+    )
+```
+
+The `addCircles` works pretty well when you aim to look for patterns in the data but not so well when you want to present the data.
+
+# addAwesomeMarkers
+
+The function `addAwesomeMarkers` allows you to create markers with limited colours and icons inside it. As before, you need to map for all values, an icon and colour; the difference is that you don't need to have the PNG or SVG; you just need to pass the icon name from the font awesome, and voila, it'll show up on the map.
+
+```{r}
+groups <- leaflet::awesomeIconList(
+    "Condo" = leaflet::makeAwesomeIcon(
+        icon = "building",
+        markerColor = "blue",
+        library = "fa"
+    ),
+    "Duplex" = leaflet::makeAwesomeIcon(
+        icon = "building",
+        markerColor = "green",
+        library = "fa"
+    ),
+    "House" = leaflet::makeAwesomeIcon(
+        icon = "home",
+        markerColor = "red",
+        library = "fa"
+    ),
+    "Triplex" = leaflet::makeAwesomeIcon(
+        icon = "building",
+        markerColor = "orange",
+        library = "fa"
+    )
+)
+
+map |>
+    leaflet::addAwesomeMarkers(
+        data = centris_ca,
+        lng = ~lon,
+        lat = ~lat,
+        icon = ~ groups[property_type],
+        group = ~property_type
+    ) |>
+    leaflet::addLegend(
+        labels = unique(centris_ca$property_type),
+        colors = c("blue", "green", "red", "orange")
+    ) |>
+    leaflet::addLayersControl(
+        overlayGroups = unique(centris_ca$property_type),
+        position = "bottomleft"
+    )
+```
+
+# addCustomMakers
+
+Now let me show a different way to generate the maps.
+
+## Same marker and colors
+
+```{r}
+map |>
+    addCustomMarkers(
+        data = centris_ca |>
+            dplyr::rename(group = property_type) |>
+            dplyr::mutate(
+                iconWidth = 40,
+                iconHeight = 40,
+                icon = "map-marker"
+            ) |>
+            dplyr::left_join(
+                tibble::tibble(
+                    group = unique(centris_ca$property_type),
+                    fill = c("blue", "green", "red", "orange")
+                ),
+                by = "group"
+            )
+    )
+```
+
+## Different markers and same color
+
+```{r}
+map |>
+    addCustomMarkers(centris_ca |>
+        dplyr::rename(group = property_type) |>
+        dplyr::mutate(
+            iconWidth = 40,
+            iconHeight = 40
+        ) |>
+        dplyr::left_join(
+            tibble::tibble(
+                group = unique(centris_ca$property_type),
+                fill = c("blue", "green", "red", "orange"),
+                icon = c("building", "building", "home", "building")
+            ),
+            by = "group"
+        ))
+```
+
+Looking at it from afar, it looks like a mess, but you get a better experience when you zoom in.
+
+## Different markers and colors
+
+And finally and above all, the pallet colours flexibility, you can see in the code below, I set a pallet from the `wesanderson` package, which is some HEX 
+colors, and it worked very well.
+
+```{r}
+map |>
+    addCustomMarkers(centris_ca |>
+        dplyr::rename(group = property_type) |>
+        dplyr::mutate(
+            iconWidth = 40,
+            iconHeight = 40
+        ) |>
+        dplyr::left_join(
+            tibble::tibble(
+                group = unique(centris_ca$property_type),
+                fill = wesanderson::wes_palette("Zissou1")[-1],
+                icon = c("building", "building", "home", "building")
+            ),
+            by = "group"
+        ))
+```
+
+
+# Conclusion
+
+Now you have more flexibility and control to build your maps; your problem now is creating a nice relation between the icon and colors which is the hardest part, 🤣.
+
+Happy coding!
