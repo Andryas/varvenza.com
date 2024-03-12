@@ -55,3 +55,4 @@ rsconnect/
 .hugo_build.lock
 public/
 resources/
+/.quarto/
